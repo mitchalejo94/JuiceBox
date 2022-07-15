@@ -10,6 +10,22 @@ async function getAllUsers(){
     return rows;
 }
 
+async function createPost({authorId, title, content}) {
+    try {
+        console.log("Creating Post")
+
+        const {rows} = await client.query(`
+        INSERT INTO posts("authorId", title, content) VALUES ($1, $2, $3);
+        `, [authorId, title, content]);
+
+        console.log(rows)
+        return rows
+
+    } catch (error) {
+        throw error
+    }
+}
+
 async function createUser({username, password, name, location}) {
 
     try {
@@ -17,9 +33,34 @@ async function createUser({username, password, name, location}) {
         INSERT INTO users(username, password, name, location) VALUES ($1, $2, $3, $4) ON CONFLICT (username) DO NOTHING RETURNING *;
         `, [username, password, name, location]);
 
+        console.log("This is the user", user)
         return user
     } catch (error) {
-        throw error
+        throw error;
+    }
+}
+
+async function updatePost(id, fields = {title, content, active}){
+        // build the set string
+        const setString = Object.keys(fields).map(
+            (key, index) => `"${ key }"=$${ index + 1 }`
+          ).join(', ');
+        
+          // return early if this is called without fields
+          if (setString.length === 0) {
+            return;
+          }
+    try {
+        const result = await client.query(`
+        UPDATE posts
+        SET ${ setString }
+        WHERE id=${ id }
+        RETURNING *;
+      `, Object.values(fields));
+  
+      return result;
+    } catch (error) {
+        throw error;
     }
 }
 
@@ -52,5 +93,6 @@ module.exports ={
     client,
     getAllUsers,
     createUser,
-    updateUser
+    updateUser,
+    createPost
 }

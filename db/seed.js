@@ -1,4 +1,4 @@
-const { client, getAllUsers, createUser, updateUser } = require('./index');
+const { client, getAllUsers, createUser, updateUser, createPost } = require('./index');
 
 async function testDB () {
 
@@ -27,6 +27,7 @@ async function dropTables(){
     try{
         console.log("Starting to drop tables...");
         await client.query(`
+        DROP TABLE IF EXISTS posts;
         DROP TABLE IF EXISTS users;
         `);
         console.log('finish dropping tables');
@@ -48,6 +49,14 @@ async function createTables(){
             location varchar(255) NOT NULL,
             active BOOLEAN DEFAULT true);
         `);
+        await client.query(`
+        CREATE TABLE posts (
+            id SERIAL PRIMARY KEY,
+            "authorId" INTEGER REFERENCES users(id) NOT NULL,
+            title varchar(255) NOT NULL,
+            content TEXT NOT NULL,
+            active BOOLEAN DEFAULT true);
+        `);
         console.log("finish building tables");
     }catch (error){
         console.error('error building tables');
@@ -59,8 +68,7 @@ async function createInitialUsers(){
     try {
         console.log("Starting to create users...")
         const albert = await createUser({username: "alejo", password: "alejo99", name:'albert', location:'mexico'});
-        // const sandra = await createUser({ username: 'sandra', password: '2sandy4me' });
-        // const glamgal = await createUser({ username: 'glamgal', password: 'soglam' });
+        
 
         console.log("Finished creating users!")
     } catch (error) {
@@ -76,6 +84,8 @@ async function rebuildDB(){
         await dropTables();
         await createTables ();
         await createInitialUsers();
+        await createPost({authorId: "1", title: "Title of my Post", content: "Content of my Post"})
+
     } catch (error){
         throw error
     }
