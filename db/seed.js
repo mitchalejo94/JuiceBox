@@ -1,27 +1,41 @@
-const { client, getAllUsers, createUser, updateUser, createPost } = require('./index');
+const { client, getAllUsers, createUser, updateUser, getAllPosts, updatePost, createInitialPosts, getUserById } = require('./index');
 
-async function testDB () {
-
-    try{
-        console.log("starting to test database");
-        const users = await getAllUsers();
-        console.log("get all users:",users);
-       
-        console.log("Calling updateUser on users[0]")
-        const {rows:[user]} = await updateUser(users[0].id, {
-          name: "Newname Sogood",
-          location: "Lesterville, KY"
-        });
-        console.log("Result:", user);
-        console.log("finish testing DB");
-        return user
-
+async function testDB() {
+    try {
+      console.log("Starting to test database...");
+  
+      console.log("Calling getAllUsers");
+      const users = await getAllUsers();
+      console.log("Result:", users);
+  
+      console.log("Calling updateUser on users[0]");
+      const updateUserResult = await updateUser(users[0].id, {
+        name: "Newname Sogood",
+        location: "Lesterville, KY"
+      });
+      console.log("Result:", updateUserResult);
+  
+      console.log("Calling getAllPosts");
+      const posts = await getAllPosts();
+      console.log("Result:", posts);
+  
+      console.log("Calling updatePost on posts[0]");
+      const updatePostResult = await updatePost(posts[0].id, {
+        title: "New Title",
+        content: "Updated Content"
+      });
+      console.log("Result:", updatePostResult);
+  
+      console.log("Calling getUserById with 1");
+      const albert = await getUserById(1);
+      console.log("Result:", albert);
+  
+      console.log("Finished database tests!");
+    } catch (error) {
+      console.log("Error during testDB");
+      throw error;
     }
-    catch(error){
-        console.error("error testing database");
-        throw error
-    } 
-}
+  }
 
 async function dropTables(){
     try{
@@ -66,16 +80,24 @@ async function createTables(){
 
 async function createInitialUsers(){
     try {
+
         console.log("Starting to create users...")
-        const albert = await createUser({username: "alejo", password: "alejo99", name:'albert', location:'mexico'});
+
+        await createUser({username: "albert", password: "albert423", name:'albert', location:'mexico'});
         
+        await createUser({username: "sandra", password: "sandra123", name:'sandra', location:'usa'});
+        
+        await createUser({username: "glamgal", password: "glamgal123", name:'idontknow', location:'korea'});
 
         console.log("Finished creating users!")
+
     } catch (error) {
         console.error("Error creating users!");
         throw error
     }
 }
+
+
 
 async function rebuildDB(){
     try{
@@ -84,7 +106,7 @@ async function rebuildDB(){
         await dropTables();
         await createTables ();
         await createInitialUsers();
-        await createPost({authorId: "1", title: "Title of my Post", content: "Content of my Post"})
+        await createInitialPosts();
 
     } catch (error){
         throw error
