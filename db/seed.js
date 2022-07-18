@@ -1,4 +1,4 @@
-const { client, getAllUsers, createUser, updateUser, getAllPosts, updatePost, createInitialPosts, getUserById } = require('./index');
+const { client, getAllUsers, createUser, updateUser, getAllPosts, updatePost, createInitialPosts, getUserById, addTagsToPost, createTags, getPostById } = require('./index');
 
 async function testDB() {
     try {
@@ -24,11 +24,22 @@ async function testDB() {
         title: "New Title",
         content: "Updated Content"
       });
+
       console.log("Result:", updatePostResult);
+
+      console.log("Calling updatePost on posts[1], only updating tags");
+      const updatePostTagsResult = await updatePost(posts[1].id, {
+        tags: ["#youcandoanything", "#redfish", "#bluefish"]
+      });
+      console.log("Result:", updatePostTagsResult);
   
       console.log("Calling getUserById with 1");
       const albert = await getUserById(1);
       console.log("Result:", albert);
+
+      console.log("Calling getPostsByTagName with #happy");
+      const postsWithHappy = await getPostsByTagName("#happy");
+      console.log("Result:", postsWithHappy);
   
       console.log("Finished database tests!");
     } catch (error) {
@@ -41,6 +52,8 @@ async function dropTables(){
     try{
         console.log("Starting to drop tables...");
         await client.query(`
+        DROP TABLE IF EXISTS post_tags;
+        DROP TABLE IF EXISTS tags;
         DROP TABLE IF EXISTS posts;
         DROP TABLE IF EXISTS users;
         `);
@@ -65,12 +78,22 @@ async function createTables(){
         `);
         await client.query(`
         CREATE TABLE posts (
-            id SERIAL PRIMARY KEY,
-            "authorId" INTEGER REFERENCES users(id) NOT NULL,
+            id SERIAL PRIMARY KEY UNIQUE NOT NULL,
+            "authorId" INTEGER REFERENCES users(id),
             title varchar(255) NOT NULL,
             content TEXT NOT NULL,
             active BOOLEAN DEFAULT true);
         `);
+        await client.query(`
+        CREATE TABLE tags (
+            id SERIAL PRIMARY KEY UNIQUE NOT NULL,
+            name varchar(255) UNIQUE NOT NULL);
+        `);
+        await client.query(`
+        CREATE TABLE post_tags (
+            "postId" INTEGER REFERENCES posts(id),
+            "tagId" INTEGER REFERENCES tags(id));
+        `)
         console.log("finish building tables");
     }catch (error){
         console.error('error building tables');
@@ -97,7 +120,23 @@ async function createInitialUsers(){
     }
 }
 
-
+async function getPostsByTagName(tagName) {
+    try {
+      const { rows: postIds } = await client.query(`
+        SELECT posts.id
+        FROM posts
+        JOIN post_tags ON posts.id=post_tags."postId"
+        JOIN tags ON tags.id=post_tags."tagId"
+        WHERE tags.name=$1;
+      `, [tagName]);
+  
+      return await Promise.all(postIds.map(
+        post => getPostById(post.id)
+      ));
+    } catch (error) {
+      throw error;
+    }
+  } 
 
 async function rebuildDB(){
     try{
